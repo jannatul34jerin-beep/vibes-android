@@ -1,0 +1,52 @@
+name: Build Vibes APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Vibes source ZIP
+        run: |
+          test -f vibes-clean-github-source.zip
+
+      - name: Extract Vibes source
+        run: |
+          mkdir -p _build
+          unzip -q vibes-clean-github-source.zip -d _build
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        run: |
+          yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Build Vibes debug APK
+        working-directory: _build/vibes-clean-github-source
+        run: gradle assembleDebug
+
+      - name: Upload Vibes APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vibes-APK
+          path: _build/vibes-clean-github-source/app/build/outputs/apk/debug/app-debug.apk
