@@ -41,6 +41,12 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
+      - name: Enable AndroidX
+        working-directory: _build/vibes-clean-github-source
+        run: |
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
       - name: Build Vibes debug APK
         working-directory: _build/vibes-clean-github-source
         run: gradle assembleDebug
