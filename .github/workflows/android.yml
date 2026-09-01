@@ -16,12 +16,12 @@ jobs:
 
       - name: Check Vibes source ZIP
         run: |
-          test -f vibes-clean-github-source.zip
+          test -f vibes-clean-github-source-8.zip
 
       - name: Extract Vibes source
         run: |
           mkdir -p _build
-          unzip -q vibes-clean-github-source.zip -d _build
+          unzip -q vibes-clean-github-source-8.zip -d _build
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
