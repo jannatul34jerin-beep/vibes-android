@@ -1,4 +1,4 @@
-# Vibes production call status — v1.5.0
+# Vibes production call status — v1.17.0
 
 Implemented:
 - Supabase Realtime call signaling.
@@ -12,6 +12,8 @@ Implemented:
 - App automatically requests short-lived TURN credentials before creating peer connections.
 - Self-hosted coturn deployment template.
 - Conditional release signing and GitHub Actions APK/AAB build workflow.
+- Android secure-window capture blocking and private lock-screen call notifications.
+- Personalized in-call watermarking to deter recording with a separate physical camera.
 
 External credentials still required for real production operation:
 1. Firebase Android `google-services.json`.
@@ -20,3 +22,5 @@ External credentials still required for real production operation:
 4. A private Android release upload keystore for Play Store signing.
 
 Never put Firebase service-account private keys, TURN shared secrets, or keystore passwords in the APK or repository.
+
+`FLAG_SECURE` blocks standard Android capture paths but no app can reliably detect or stop someone filming the screen with another physical camera. The watermark is a deterrent and traceability aid, not a guarantee.

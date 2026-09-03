@@ -19,21 +19,43 @@ import android.app.PendingIntent;
 import android.app.Notification;
 import android.content.Context;
 import android.os.Build;
+import android.widget.Toast;
+import android.webkit.WebResourceRequest;
+import android.view.WindowManager;
+
+import com.google.android.play.core.appupdate.AppUpdateInfo;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.appupdate.AppUpdateOptions;
+import com.google.android.play.core.install.InstallState;
+import com.google.android.play.core.install.InstallStateUpdatedListener;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.InstallStatus;
+import com.google.android.play.core.install.model.UpdateAvailability;
 
 public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int MEDIA_PERMISSION_REQUEST = 1002;
+    private static final int APP_UPDATE_REQUEST = 1004;
     private PermissionRequest pendingWebPermission;
     private static final String CALL_CHANNEL_ID = "vibes_calls";
+    private AppUpdateManager appUpdateManager;
+    private InstallStateUpdatedListener updateListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Keep conversations, calls and account data out of Android screenshots,
+        // standard screen recording/casting and non-secure displays.
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE);
         webView = new WebView(this);
         setContentView(webView);
         createCallNotificationChannel();
+        configurePlayUpdates();
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -45,7 +67,18 @@ public class MainActivity extends Activity {
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         webView.addJavascriptInterface(new NativeBridge(this), "VibesNative");
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return openOutsideIfNeeded(request.getUrl());
+            }
+
+            @Override
+            @SuppressWarnings("deprecation")
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return openOutsideIfNeeded(Uri.parse(url));
+            }
+        });
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1003);
         }
@@ -53,10 +86,24 @@ public class MainActivity extends Activity {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 runOnUiThread(() -> {
-                    boolean cameraOk = android.os.Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
-                    boolean micOk = android.os.Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+                    Uri origin = request.getOrigin();
+                    if (origin == null || !"file".equals(origin.getScheme())) { request.deny(); return; }
+                    boolean needsCamera = false, needsMic = false;
+                    for (String resource : request.getResources()) {
+                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) needsCamera = true;
+                        else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) needsMic = true;
+                        else { request.deny(); return; }
+                    }
+                    boolean cameraOk = !needsCamera || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+                    boolean micOk = !needsMic || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
                     if (cameraOk && micOk) request.grant(request.getResources());
-                    else { pendingWebPermission = request; requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, MEDIA_PERMISSION_REQUEST); }
+                    else {
+                        pendingWebPermission = request;
+                        java.util.ArrayList<String> needed = new java.util.ArrayList<>();
+                        if (needsCamera && !cameraOk) needed.add(Manifest.permission.CAMERA);
+                        if (needsMic && !micOk) needed.add(Manifest.permission.RECORD_AUDIO);
+                        requestPermissions(needed.toArray(new String[0]), MEDIA_PERMISSION_REQUEST);
+                    }
                 });
             }
 
@@ -68,7 +115,8 @@ public class MainActivity extends Activity {
                 filePathCallback = callback;
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("image/*");
+                intent.setType("*/*");
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
                 startActivityForResult(intent, FILE_CHOOSER_REQUEST);
                 return true;
             }
@@ -78,6 +126,46 @@ public class MainActivity extends Activity {
             webView.loadUrl("file:///android_asset/index.html");
         } else {
             webView.restoreState(savedInstanceState);
+        }
+    }
+
+    private boolean openOutsideIfNeeded(Uri uri) {
+        if (uri == null) return true;
+        String scheme = uri.getScheme();
+        if ("file".equals(scheme) && uri.toString().startsWith("file:///android_asset/")) return false;
+        if ("https".equals(scheme) || "http".equals(scheme)) {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+            catch (Exception ignored) { Toast.makeText(this, "No browser is available", Toast.LENGTH_SHORT).show(); }
+        }
+        return true;
+    }
+
+    private void configurePlayUpdates() {
+        appUpdateManager = AppUpdateManagerFactory.create(this);
+        updateListener = (InstallState state) -> {
+            if (state.installStatus() == InstallStatus.DOWNLOADED) {
+                Toast.makeText(this, "Vibes update ready", Toast.LENGTH_SHORT).show();
+                appUpdateManager.completeUpdate();
+            }
+        };
+        appUpdateManager.registerListener(updateListener);
+        appUpdateManager.getAppUpdateInfo().addOnSuccessListener(this::startFlexibleUpdateIfAvailable);
+    }
+
+    private void startFlexibleUpdateIfAvailable(AppUpdateInfo info) {
+        if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+                && info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+            try {
+                appUpdateManager.startUpdateFlowForResult(
+                        info,
+                        this,
+                        AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build(),
+                        APP_UPDATE_REQUEST);
+            } catch (Exception ignored) {
+                // Google Play can decline the flow when the app was not Play-installed.
+            }
+        } else if (info.installStatus() == InstallStatus.DOWNLOADED) {
+            appUpdateManager.completeUpdate();
         }
     }
 
@@ -106,12 +194,28 @@ public class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (appUpdateManager != null) {
+            appUpdateManager.getAppUpdateInfo().addOnSuccessListener(info -> {
+                if (info.installStatus() == InstallStatus.DOWNLOADED) appUpdateManager.completeUpdate();
+            });
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+    }
+
     private void createCallNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CALL_CHANNEL_ID, "Incoming calls", NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("Incoming audio and video calls on Vibes");
-            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
             channel.enableVibration(true);
             getSystemService(NotificationManager.class).createNotificationChannel(channel);
         }
@@ -138,7 +242,7 @@ public class MainActivity extends Activity {
                  .setContentText("video".equals(callType) ? "Incoming video call" : "Incoming audio call")
                  .setCategory(Notification.CATEGORY_CALL)
                  .setPriority(Notification.PRIORITY_MAX)
-                 .setVisibility(Notification.VISIBILITY_PUBLIC)
+                 .setVisibility(Notification.VISIBILITY_PRIVATE)
                  .setAutoCancel(true)
                  .setContentIntent(contentIntent);
                 ((NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE)).notify(7001, b.build());
@@ -182,5 +286,15 @@ public class MainActivity extends Activity {
     protected void onSaveInstanceState(Bundle outState) {
         webView.saveState(outState);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (appUpdateManager != null && updateListener != null) appUpdateManager.unregisterListener(updateListener);
+        if (webView != null) {
+            webView.removeJavascriptInterface("VibesNative");
+            webView.destroy();
+        }
+        super.onDestroy();
     }
 }

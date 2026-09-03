@@ -1,0 +1,78 @@
+/* Vibes Comfort UI: calm contrast, clear hierarchy and accessible touch targets. */
+:root{
+  --bg:#f1f4f8;
+  --card:#ffffff;
+  --card2:#ffffff;
+  --text:#172033;
+  --muted:#647187;
+  --line:#dce3ec;
+  --brand:#1769d1;
+  --brand2:#2f80ed;
+  --pink:#1769d1;
+  --danger:#c83d55;
+  --soft:#eaf2ff;
+  --shadow:0 3px 14px rgba(30,52,80,.08);
+}
+body{background:var(--bg);color:var(--text);line-height:1.45;-webkit-font-smoothing:antialiased}
+.app{background:var(--bg)}
+.top{min-height:58px;background:rgba(255,255,255,.94);border-color:var(--line);box-shadow:0 1px 7px rgba(30,52,80,.05)}
+.brand{color:var(--brand);background:none;-webkit-background-clip:initial;text-shadow:none}
+.content{padding:14px 12px 110px}
+.card{background:var(--card);border-color:var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.title{letter-spacing:-.015em}
+.muted{color:var(--muted)}
+.avatar{background:linear-gradient(135deg,#4b8fe4,#1769d1);border-color:#dbeafe;box-shadow:none}
+.avatar.lg{background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,#1769d1,#67b2ff) border-box}
+.pill,.action,.icon-btn,.call-mini{min-height:42px;background:#f7f9fc;color:var(--text);border-color:var(--line)}
+.btn{min-height:44px;background:linear-gradient(135deg,#1769d1,#2f80ed);box-shadow:0 5px 14px rgba(23,105,209,.18)}
+input,textarea,.field,.profile-field textarea,.profile-field select{min-height:44px;background:#fff;color:var(--text);border-color:#cfd8e5}
+input:focus,textarea:focus,.field:focus{border-color:#2f80ed;box-shadow:0 0 0 3px rgba(47,128,237,.14)}
+.nav{background:rgba(255,255,255,.97);border-color:var(--line);box-shadow:0 -2px 12px rgba(30,52,80,.07)}
+.nav button{min-height:54px;color:#677489}
+.nav button.active{color:var(--brand);text-shadow:none}
+.nav button:nth-child(3) .ico{background:linear-gradient(135deg,#1769d1,#2f80ed);box-shadow:0 3px 10px rgba(23,105,209,.22)}
+.stat,.tabs,.bubble,.group-picker label{background:#f5f7fa;border-color:var(--line)}
+.bubble.me{background:#dcecff;color:#102b4d}
+.notice{background:#eaf2ff;color:#284b74;border:1px solid #d2e4fb}
+.notice.warn{background:#fff4e5;color:#7d5119;border-color:#f5dfbd}
+.menu-panel{background:#fff;border-color:var(--line)}
+.source-badge{box-shadow:none}
+.post-img{background:#eef2f7}
+.profile-cover{background:linear-gradient(135deg,#d6e9ff,#b8d7fb)}
+.profile-detail a,.linkbtn{color:#1769d1}
+.verified-badge{display:inline-grid;place-items:center;width:21px;height:21px;border-radius:50%;background:#1689f5;color:#fff;font-size:13px;vertical-align:middle}
+.premium-badge{display:table;margin:10px auto;padding:5px 10px;border-radius:999px;background:linear-gradient(135deg,#ffe896,#e3ad23);color:#4c3100;font-weight:850;font-size:12px}
+.authenticity-entry{border-color:#cae4d8;background:linear-gradient(135deg,#f4fbf7,#f5f9ff)}
+.trust-row{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.trust-row:last-of-type{border-bottom:0}
+.trust-success{margin-top:14px;padding:12px;border-radius:12px;background:#dff8e8;color:#176b39;font-weight:750}
+.premium-card{border-color:#eadcae;background:linear-gradient(145deg,#fffbeb,#f7f8ff)}
+.premium-mark{display:grid;place-items:center;width:48px;height:48px;margin:0 auto 10px;border-radius:50%;background:linear-gradient(135deg,#ffe896,#d99511);color:#4b3000;font-size:25px}
+.premium-card>.section-title{text-align:center}
+.restriction-shell{min-height:100vh;display:grid;place-items:center;padding:22px;background:#edf2f8}
+.restriction-shell>.card{width:min(520px,100%)}
+.restriction-shell textarea,.card #verificationNote{width:100%;min-height:100px;margin:12px 0;resize:vertical}
+.restriction-shell .btn{margin-right:8px}
+[data-theme="dark"]{
+  --bg:#111722;
+  --card:#19212e;
+  --card2:#19212e;
+  --text:#edf3fb;
+  --muted:#9facbe;
+  --line:#2b3849;
+  --brand:#70aef8;
+  --brand2:#5e9fee;
+  --shadow:0 4px 16px rgba(0,0,0,.18);
+}
+[data-theme="dark"] body,[data-theme="dark"] .app{background:var(--bg);color:var(--text)}
+[data-theme="dark"] .top,[data-theme="dark"] .nav{background:rgba(25,33,46,.96);color:var(--text)}
+[data-theme="dark"] .card{background:var(--card);color:var(--text)}
+[data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select,[data-theme="dark"] .profile-field textarea,[data-theme="dark"] .profile-field select{background:#121923;color:var(--text);border-color:var(--line)}
+[data-theme="dark"] .pill,[data-theme="dark"] .action,[data-theme="dark"] .icon-btn,[data-theme="dark"] .call-mini,[data-theme="dark"] .stat,[data-theme="dark"] .bubble,[data-theme="dark"] .group-picker label{background:#202a39;color:var(--text);border-color:var(--line)}
+[data-theme="dark"] .bubble.me{background:#23446b}
+[data-theme="dark"] .premium-card{background:linear-gradient(145deg,#29271f,#20253a)}
+[data-theme="dark"] .authenticity-entry{background:linear-gradient(135deg,#1b2c29,#1b2635)}
+[data-theme="dark"] .restriction-shell{background:#111722}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid rgba(47,128,237,.45);outline-offset:2px}
+@media(max-width:560px){.content{padding-inline:10px}.card{border-radius:14px}.top{padding-inline:12px}.language-select{max-width:104px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
